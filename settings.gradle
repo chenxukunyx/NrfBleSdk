@@ -1,0 +1,3 @@
+include ':lib-ble'
+include ':app'
+rootProject.name = "NrfBleSdk"
