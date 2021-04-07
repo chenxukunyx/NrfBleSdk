@@ -58,7 +58,7 @@ class ScanResultActivity: AppCompatActivity() {
 
             }
 
-            override fun onScanMatched(result: HashMap<String, BluetoothDevice>) {
+            override fun onScanMatched(result: HashMap<String, ScanResult>) {
                 adapter.update(result)
             }
 
@@ -104,7 +104,7 @@ class ScanResultActivity: AppCompatActivity() {
     }
 }
 
-class MyAdapter(private val context: Context, private val list: ArrayList<BluetoothDevice>, private val itemClick: (device: BluetoothDevice, password: String) -> Unit) : RecyclerView.Adapter<MyViewHolder>() {
+class MyAdapter(private val context: Context, private val list: ArrayList<ScanResult>, private val itemClick: (device: BluetoothDevice, password: String) -> Unit) : RecyclerView.Adapter<MyViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
         return MyViewHolder(LayoutInflater.from(context).inflate(R.layout.item_scan_result, null))
@@ -115,7 +115,7 @@ class MyAdapter(private val context: Context, private val list: ArrayList<Blueto
     }
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
-        val device = list[position]
+        val device = list[position].device
         holder.tv_mac.text = device.address
         holder.tv_name.text = device.name
         holder.itemView.setOnClickListener {
@@ -124,7 +124,7 @@ class MyAdapter(private val context: Context, private val list: ArrayList<Blueto
         }
     }
 
-    fun update(map: HashMap<String, BluetoothDevice>) {
+    fun update(map: HashMap<String, ScanResult>) {
         list.clear()
         map.forEach {
             list.add(it.value)

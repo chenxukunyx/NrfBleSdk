@@ -1,6 +1,5 @@
 package com.miracle.lib_ble
 
-import android.bluetooth.BluetoothDevice
 import android.content.Context
 import com.miracle.lib_ble.callback.BleCallback
 import com.miracle.lib_ble.internal.BluetoothInternal
@@ -50,23 +49,23 @@ object BluetoothManager {
 
     fun initialDevice(mac: String) {
         assertDeviceNull(mac)
-        bleInternal.initialDevice(bleInternal.getDeviceMap()[mac]!!)
+        bleInternal.initialDevice(bleInternal.getDeviceMap()[mac]!!.device)
     }
 
     fun getOtaInfo(mac: String, aes: String) {
         assertDeviceNull(mac)
-        bleInternal.getOTAInfo(bleInternal.getDeviceMap()[mac]!!, aes)
+        bleInternal.getOTAInfo(bleInternal.getDeviceMap()[mac]!!.device, aes)
     }
 
 
     fun openDoor(mac: String, password: String, aes: String) {
         assertDeviceNull(mac)
-        bleInternal.openDoor(bleInternal.getDeviceMap()[mac]!!, password, aes)
+        bleInternal.openDoor(bleInternal.getDeviceMap()[mac]!!.device, password, aes)
     }
 
     fun updatePassword(mac: String, oldPwd: String, newPwd: String, aes: String) {
         assertDeviceNull(mac)
-        bleInternal.updatePassword(bleInternal.getDeviceMap()[mac]!!, oldPwd, newPwd, aes)
+        bleInternal.updatePassword(bleInternal.getDeviceMap()[mac]!!.device, oldPwd, newPwd, aes)
     }
 
     private fun assertDeviceNull(mac: String) {

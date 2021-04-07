@@ -89,7 +89,7 @@ class MainActivity : AppCompatActivity() {
             Log.i(TAG, "onScanMatched: ")
         }
 
-        override fun onScanMatched(result: HashMap<String, BluetoothDevice>) {
+        override fun onScanMatched(result: HashMap<String, ScanResult>) {
 
         }
 

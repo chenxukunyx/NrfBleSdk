@@ -47,7 +47,7 @@ internal class BluetoothInternal {
     private var onlyScan = false
     private var state = STATE_NEED_RETRY
     private var retryCount = 0
-    private val devicesMap = HashMap<String, BluetoothDevice>()
+    private val devicesMap = HashMap<String, ScanResult>()
 
     private var bluetoothGattService: BluetoothGattService? = null
     private var bluetoothGatt: BluetoothGatt? = null
@@ -143,7 +143,7 @@ internal class BluetoothInternal {
         if (onlyScan) {
             val isMatch = parseDevice(result)
             if (isMatch) {
-                devicesMap[result.device.address] = result.device
+                devicesMap[result.device.address] = result
                 bleCallback?.onScanMatched(devicesMap)
             }
         } else {

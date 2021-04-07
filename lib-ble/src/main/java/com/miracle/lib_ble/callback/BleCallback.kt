@@ -20,7 +20,7 @@ interface BleCallback {
 
     fun onScanTimeout(isEmpty: Boolean)
 
-    fun onScanMatched(result: HashMap<String, BluetoothDevice>)
+    fun onScanMatched(result: HashMap<String, ScanResult>)
 
     fun onScanMatched(result: ScanResult)
 
