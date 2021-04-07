@@ -1,6 +1,7 @@
 package com.miracle.nrfblesdk
 
 import android.app.Application
+import android.content.Context
 import com.miracle.lib_ble.BluetoothManager
 import com.miracle.lib_ble.utils.BleUtil
 
@@ -14,8 +15,15 @@ import com.miracle.lib_ble.utils.BleUtil
  */
 class MyApp : Application() {
 
+    companion object{
+        private var context: Context? = null
+
+        fun getContext() = context!!
+    }
+
     override fun onCreate() {
         super.onCreate()
+        context = this
         BluetoothManager.init(this)
         BleUtil.init(this)
     }

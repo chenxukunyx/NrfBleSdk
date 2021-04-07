@@ -206,15 +206,25 @@ class DeviceListActivity : AppCompatActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle("mac: ${device.address}")
             .setMessage("aesKey: ${getAes(device.address)}")
-            .setNegativeButton("尝试开门") { dialog, which ->
+            .setPositiveButton("尝试开门") { dialog, which ->
+                if (sp.getString(device.address, null).isNullOrEmpty()) {
+                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
+                    showToast(msg)
+                    return@setPositiveButton
+                }
+                dialog.cancel()
+                loading.show()
+                BluetoothManager.openDoor(device.address, password, getAes(device.address))
+            }
+            .setNegativeButton("复制信息") { dialog, which ->
                 if (sp.getString(device.address, null).isNullOrEmpty()) {
                     val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
                     showToast(msg)
                     return@setNegativeButton
                 }
                 dialog.cancel()
-                loading.show()
-                BluetoothManager.openDoor(device.address, password, getAes(device.address))
+                ClipManager.setTextToClip("${device.address}-${sp.getString(device.address, "")}")
+                showToast("复制成功")
             }
             .create()
         dialog.show()
