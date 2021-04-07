@@ -22,8 +22,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.loadingview.LoadingDialog
 import com.miracle.lib_ble.BluetoothManager
 import com.miracle.lib_ble.callback.BleCallback
-import com.miracle.lib_ble.utils.BleUtil
 import com.miracle.lib_ble.utils.DataUtil
+import com.yanzhenjie.permission.AndPermission
+import com.yanzhenjie.permission.runtime.Permission
 import kotlinx.android.synthetic.main.activity_device_list.*
 import kotlin.experimental.and
 
@@ -38,6 +39,7 @@ import kotlin.experimental.and
 class DeviceListActivity : AppCompatActivity() {
 
     private val TAG = "DeviceListActivity"
+    private val RESULT_PERMISSION = 0x01
 
     private val loading by lazy {
         LoadingDialog[this]
@@ -86,12 +88,12 @@ class DeviceListActivity : AppCompatActivity() {
         initDeviceList()
         inject()
 
-        startScan()
+        checkLocationPermission()
     }
 
     private fun inject() {
         refresh.setOnClickListener {
-            startScan()
+            checkLocationPermission()
         }
     }
 
@@ -136,7 +138,7 @@ class DeviceListActivity : AppCompatActivity() {
 
             override fun onBleDisconnected(gatt: BluetoothGatt) {
                 runOnUiThread {
-                    startScan()
+                    checkLocationPermission()
                 }
             }
 
@@ -160,7 +162,7 @@ class DeviceListActivity : AppCompatActivity() {
                 runOnUiThread {
                     loading.hide()
                     showToast("初始化成功")
-                    startScan()
+                    checkLocationPermission()
                 }
             }
 
@@ -172,7 +174,7 @@ class DeviceListActivity : AppCompatActivity() {
                 runOnUiThread {
                     loading.hide()
                     showToast("开门成功")
-                    startScan()
+                    checkLocationPermission()
                 }
             }
 
@@ -229,6 +231,23 @@ class DeviceListActivity : AppCompatActivity() {
     private fun endScan() {
         animation.cancel()
         refresh.clearAnimation()
+    }
+
+    private fun checkLocationPermission() {
+        if (AndPermission.hasPermissions(this, Permission.ACCESS_FINE_LOCATION)) {
+            startScan()
+        } else {
+            AndPermission.with(this)
+                .runtime()
+                .permission(Permission.ACCESS_FINE_LOCATION)
+                .onDenied {
+                    Toast.makeText(this, "储存权限已被禁止,请到权限管理授权", Toast.LENGTH_LONG).show()
+                }
+                .onGranted {
+                    startScan()
+                }
+                .start()
+        }
     }
 }
 
