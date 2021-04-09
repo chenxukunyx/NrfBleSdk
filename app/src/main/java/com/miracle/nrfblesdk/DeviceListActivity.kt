@@ -56,7 +56,7 @@ class DeviceListActivity : AppCompatActivity() {
             openDoor = { mac, aesKey ->
                 if (aesKey.isNullOrEmpty()) {
                     val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，不能进行开门操作"
-                    showToast(msg)
+                    showHintDialog(msg)
                     return@DeviceListAdapter
                 }
                 loading.show()
@@ -65,7 +65,7 @@ class DeviceListActivity : AppCompatActivity() {
             modify = { mac, aesKey ->
                 if (aesKey.isNullOrEmpty()) {
                     val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，禁止此操作"
-                    showToast(msg)
+                    showHintDialog(msg)
                     return@DeviceListAdapter
                 }
                 showModifyDialog(mac)
@@ -203,12 +203,21 @@ class DeviceListActivity : AppCompatActivity() {
                     showToast("开门失败")
                 }
             }
-
         })
     }
 
     private fun showToast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showHintDialog(msg: String) {
+        val dialog = AlertDialog.Builder(this)
+            .setMessage(msg)
+            .setPositiveButton("确定") { dialog, _ ->
+                dialog.cancel()
+            }
+            .create()
+        dialog.show()
     }
 
     private fun showModifyDialog(mac: String) {
@@ -225,37 +234,37 @@ class DeviceListActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showDeviceInfoDialog(device: BluetoothDevice, password: String) {
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("mac: ${device.address}")
-            .setMessage("aesKey: ${CacheManager.get(device.address)}")
-            .setPositiveButton("尝试开门") { dialog, which ->
-                if (CacheManager.get(device.address).isNullOrEmpty()) {
-                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
-                    showToast(msg)
-                    return@setPositiveButton
-                }
-                dialog.cancel()
-                loading.show()
-                BluetoothManager.openDoor(
-                    device.address,
-                    password,
-                    CacheManager.get(device.address)!!
-                )
-            }
-            .setNegativeButton("复制信息") { dialog, which ->
-                if (CacheManager.get(device.address).isNullOrEmpty()) {
-                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
-                    showToast(msg)
-                    return@setNegativeButton
-                }
-                dialog.cancel()
-//                ClipManager.setTextToClip("${device.address}-${sp.getString(device.address, "")}")
-//                showToast("复制成功")
-            }
-            .create()
-        dialog.show()
-    }
+//    private fun showDeviceInfoDialog(device: BluetoothDevice, password: String) {
+//        val dialog = AlertDialog.Builder(this)
+//            .setTitle("mac: ${device.address}")
+//            .setMessage("aesKey: ${CacheManager.get(device.address)}")
+//            .setPositiveButton("尝试开门") { dialog, which ->
+//                if (CacheManager.get(device.address).isNullOrEmpty()) {
+//                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
+//                    showHintDialog(msg)
+//                    return@setPositiveButton
+//                }
+//                dialog.cancel()
+//                loading.show()
+//                BluetoothManager.openDoor(
+//                    device.address,
+//                    password,
+//                    CacheManager.get(device.address)!!
+//                )
+//            }
+//            .setNegativeButton("复制信息") { dialog, which ->
+//                if (CacheManager.get(device.address).isNullOrEmpty()) {
+//                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
+//                    showHintDialog(msg)
+//                    return@setNegativeButton
+//                }
+//                dialog.cancel()
+////                ClipManager.setTextToClip("${device.address}-${sp.getString(device.address, "")}")
+////                showToast("复制成功")
+//            }
+//            .create()
+//        dialog.show()
+//    }
 
     private fun startScan() {
         adapter.clear()
