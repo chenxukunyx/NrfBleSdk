@@ -42,6 +42,10 @@ object CacheManager {
         mmkv.removeValueForKey(key)
     }
 
+    fun clear() {
+        mmkv.clearAll()
+    }
+
     fun containsKey(key: String): Boolean {
 //        val mmkv = MMKV.defaultMMKV()
         return mmkv.containsKey(key) ?: false

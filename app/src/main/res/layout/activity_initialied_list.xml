@@ -12,7 +12,7 @@
         app:title="已初始化列表"
         app:titleTextColor="#444444"
         android:background="#f1f2f6"
-        app:navigationIcon="@drawable/baseline_edgesensor_low_black_24dp">
+        app:navigationIcon="@drawable/baseline_keyboard_backspace_black_24dp">
 
     </androidx.appcompat.widget.Toolbar>
 

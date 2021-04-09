@@ -3,8 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/refresh"
-        android:icon="@drawable/baseline_refresh_black_24dp"
-        android:title="Action"
-        app:showAsAction="always"/>
+        android:id="@+id/delete_all"
+        android:title="清空列表"
+        android:icon="@drawable/baseline_delete_forever_black_24dp"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/open_document"
+        android:title="导出文件"
+        android:icon="@drawable/baseline_my_location_black_24dp"
+        app:showAsAction="never"/>
 </menu>

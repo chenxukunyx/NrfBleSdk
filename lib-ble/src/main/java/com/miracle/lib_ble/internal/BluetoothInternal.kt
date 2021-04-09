@@ -432,7 +432,7 @@ internal class BluetoothInternal {
     /**
      * 蓝牙是否可用
      */
-    fun isBluetoothEnable() = bluetoothAdapter.enable()
+    fun isBluetoothEnable() = bluetoothAdapter.isEnabled
 
     fun getDeviceMap() = devicesMap
 

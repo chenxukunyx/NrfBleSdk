@@ -2,12 +2,12 @@ package com.miracle.nrfblesdk
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.provider.DocumentsContract
+import android.view.*
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -65,6 +65,19 @@ class InitialiedListActivity : AppCompatActivity() {
         inject()
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.toolbar_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId) {
+            R.id.delete_all -> showDeleteAllConfirmDialog()
+            R.id.open_document -> ShareUtil.share(this, File(getPath(), "export.csv"))
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     private fun inject() {
         refresh.setOnRefreshListener {
             adapter.update(CacheManager.getAllValue())
@@ -74,6 +87,20 @@ class InitialiedListActivity : AppCompatActivity() {
         iv_export.setOnClickListener {
             checkLocationPermission()
         }
+
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
+    }
+
+    private fun openDocument() {
+        val path = "%2fA_LMH%2f"
+        val uri = Uri.parse("content://com.android.externalstorage.documents/document/primary:$path")
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "*/*" //想要展示的文件类型
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+        startActivityForResult(intent, 0)
     }
 
     private fun initDeviceList() {
@@ -86,7 +113,6 @@ class InitialiedListActivity : AppCompatActivity() {
     }
 
     private fun showModifyDialog(mac: String) {
-
         val json = CacheManager.get(mac)
         val bean = JsonUtil.fromJson(json, DeviceBean::class.java)
         val dialog = ModifyDialog(this, bean.nickname) { nickname ->
@@ -105,6 +131,22 @@ class InitialiedListActivity : AppCompatActivity() {
             .setMessage("此操作会删除此设备的所有数据，为不可逆的，确认删除？")
             .setNegativeButton("删除") { dialog, _ ->
                 CacheManager.remove(mac)
+                adapter.update(CacheManager.getAllValue())
+                dialog.cancel()
+            }
+            .setPositiveButton("取消") { dialog, _ ->
+                dialog.cancel()
+            }
+            .create()
+        dialog.show()
+    }
+
+    private fun showDeleteAllConfirmDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("是否要清空所有记录？")
+            .setMessage("此操作会删除所有已初始化的设备记录，确认删除？")
+            .setNegativeButton("删除") { dialog, _ ->
+                CacheManager.clear()
                 adapter.update(CacheManager.getAllValue())
                 dialog.cancel()
             }
@@ -154,22 +196,13 @@ class InitialiedListActivity : AppCompatActivity() {
 
     private fun writeData(list: ArrayList<String>, result: (success: Boolean) -> Unit) {
         loading.show()
-        val sdCardExist = Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
-        val path = if (sdCardExist) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                Environment.getExternalStorageDirectory().absolutePath + "/A_LMH"
-            } else {
-                Environment.getExternalStorageDirectory().absolutePath + "/A_LMH"
-            }
-        } else {
-            Environment.getRootDirectory().absolutePath + "/com.miracle.nrfbledemo/A_LMH"
-        }
-        BleLog.i(TAG, "sdcardExixt: $sdCardExist, storage path is: $path")
+        val path = getPath()
+        BleLog.i(TAG, "storage path is: $path")
         thread {
             val dir = File(path)
             if (!dir.exists())
                 dir.mkdirs()
-            val file = File(dir, "lock.csv")
+            val file = File(dir, "export.csv")
             if (file.exists()) file.delete()
             var bw: BufferedWriter? = null
             try {
@@ -194,6 +227,20 @@ class InitialiedListActivity : AppCompatActivity() {
         }
 
 
+    }
+
+    private fun getPath(): String {
+        val sdCardExist = Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
+        val path = if (sdCardExist) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Environment.getExternalStorageDirectory().absolutePath + "/A_LMH"
+            } else {
+                Environment.getExternalStorageDirectory().absolutePath + "/A_LMH"
+            }
+        } else {
+            Environment.getRootDirectory().absolutePath + "/com.miracle.nrfbledemo/A_LMH"
+        }
+        return path
     }
 }
 

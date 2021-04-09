@@ -24,6 +24,16 @@
         <activity android:name=".ScanResultActivity"/>
 
         <activity android:name=".InitialiedListActivity"/>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.miracle.nrfblesdk.fileprovider"
+            android:grantUriPermissions="true"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_path_public" />
+        </provider>
     </application>
 
 </manifest>
