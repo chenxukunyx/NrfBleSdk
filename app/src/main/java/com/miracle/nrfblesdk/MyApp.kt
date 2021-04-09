@@ -26,5 +26,6 @@ class MyApp : Application() {
         context = this
         BluetoothManager.init(this)
         BleUtil.init(this)
+        CacheManager.init(this)
     }
 }

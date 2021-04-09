@@ -41,4 +41,6 @@ interface BleCallback {
     fun isDeviceInitial(init: Boolean)
 
     fun onOpenDoorSuccess(data: ByteArray)
+
+    fun onConnectTimeout()
 }

@@ -131,6 +131,10 @@ class MainActivity : AppCompatActivity() {
             Log.i(TAG, "onOpenDoorSuccess: ")
         }
 
+        override fun onConnectTimeout() {
+
+        }
+
     }
 
     private fun saveAESKey(aes: ByteArray) {

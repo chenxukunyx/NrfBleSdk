@@ -22,7 +22,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.loadingview.LoadingDialog
 import com.miracle.lib_ble.BluetoothManager
 import com.miracle.lib_ble.callback.BleCallback
+import com.miracle.lib_ble.utils.BleLog
 import com.miracle.lib_ble.utils.DataUtil
+import com.tencent.mmkv.MMKV
 import com.yanzhenjie.permission.AndPermission
 import com.yanzhenjie.permission.runtime.Permission
 import kotlinx.android.synthetic.main.activity_device_list.*
@@ -39,7 +41,6 @@ import kotlin.experimental.and
 class DeviceListActivity : AppCompatActivity() {
 
     private val TAG = "DeviceListActivity"
-    private val RESULT_PERMISSION = 0x01
 
     private val loading by lazy {
         LoadingDialog[this]
@@ -47,28 +48,40 @@ class DeviceListActivity : AppCompatActivity() {
 
     private val adapter by lazy {
         DeviceListAdapter(this, arrayListOf(),
-            itemClick = {device, password, isInit ->
-                Log.i(TAG, "itemClick")
-                if (!isInit) {
-                    showToast("设备还未初始化，请先进行初始化操作")
-                    return@DeviceListAdapter
-                }
-                showDeviceInfoDialog(device, password)
-            },
             initClick = {
                 loading.show()
                 mac = it.address
                 BluetoothManager.initialDevice(it.address)
+            },
+            openDoor = { mac, aesKey ->
+                if (aesKey.isNullOrEmpty()) {
+                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，不能进行开门操作"
+                    showToast(msg)
+                    return@DeviceListAdapter
+                }
+                loading.show()
+                BluetoothManager.openDoor(mac, "00000000", aesKey)
+            },
+            modify = { mac, aesKey ->
+                if (aesKey.isNullOrEmpty()) {
+                    val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，禁止此操作"
+                    showToast(msg)
+                    return@DeviceListAdapter
+                }
+                showModifyDialog(mac)
             }
         )
     }
 
-    private val sp by lazy {
-        getSharedPreferences("aeskey_sharedpref", Context.MODE_PRIVATE)
-    }
-
     private val animation by lazy {
-        RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f).apply {
+        RotateAnimation(
+            0f,
+            360f,
+            Animation.RELATIVE_TO_SELF,
+            0.5f,
+            Animation.RELATIVE_TO_SELF,
+            0.5f
+        ).apply {
             fillAfter = true
             repeatCount = Animation.INFINITE
             duration = 1000
@@ -94,6 +107,10 @@ class DeviceListActivity : AppCompatActivity() {
     private fun inject() {
         refresh.setOnClickListener {
             checkLocationPermission()
+        }
+
+        iv_initialied_list.setOnClickListener {
+            InitialiedListActivity.start(this)
         }
     }
 
@@ -158,7 +175,9 @@ class DeviceListActivity : AppCompatActivity() {
             }
 
             override fun onGetAESKey(byteArray: ByteArray) {
-                saveAes(byteArray)
+                val bean = DeviceBean(mac!!, DataUtil.bytes2Hex(byteArray), "未命名")
+                val json = JsonUtil.toJson(bean)
+                CacheManager.put(mac!!, json)
                 runOnUiThread {
                     loading.hide()
                     showToast("初始化成功")
@@ -178,53 +197,61 @@ class DeviceListActivity : AppCompatActivity() {
                 }
             }
 
+            override fun onConnectTimeout() {
+                runOnUiThread {
+                    loading.hide()
+                    showToast("开门失败")
+                }
+            }
+
         })
-    }
-
-    private fun saveAes(byteArray: ByteArray) {
-        val editor = sp.edit()
-        editor.putString(mac, DataUtil.bytes2Hex(byteArray))
-        editor.commit()
-    }
-
-    private fun getAes(mac: String): String {
-        return sp.getString(mac, "")?:""
-//        return "b035f97b9cf45922bd52572bedabe2ed"
-    }
-
-    fun delAes(mac: String) {
-        val editor = sp.edit()
-        editor.remove(mac)
-        editor.commit()
     }
 
     private fun showToast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 
+    private fun showModifyDialog(mac: String) {
+
+        val json = CacheManager.get(mac)
+        val bean = JsonUtil.fromJson(json, DeviceBean::class.java)
+        val dialog = ModifyDialog(this, bean.nickname) { nickname ->
+
+            bean.nickname = nickname
+            val ret = JsonUtil.toJson(bean)
+            CacheManager.put(mac, ret)
+            startScan()
+        }
+        dialog.show()
+    }
+
     private fun showDeviceInfoDialog(device: BluetoothDevice, password: String) {
         val dialog = AlertDialog.Builder(this)
             .setTitle("mac: ${device.address}")
-            .setMessage("aesKey: ${getAes(device.address)}")
+            .setMessage("aesKey: ${CacheManager.get(device.address)}")
             .setPositiveButton("尝试开门") { dialog, which ->
-                if (sp.getString(device.address, null).isNullOrEmpty()) {
+                if (CacheManager.get(device.address).isNullOrEmpty()) {
                     val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
                     showToast(msg)
                     return@setPositiveButton
                 }
                 dialog.cancel()
                 loading.show()
-                BluetoothManager.openDoor(device.address, password, getAes(device.address))
+                BluetoothManager.openDoor(
+                    device.address,
+                    password,
+                    CacheManager.get(device.address)!!
+                )
             }
             .setNegativeButton("复制信息") { dialog, which ->
-                if (sp.getString(device.address, null).isNullOrEmpty()) {
+                if (CacheManager.get(device.address).isNullOrEmpty()) {
                     val msg = "设备不是在本机进行的初始化操作，未能获取到AesKey，可尝试对设备进行Reset操作"
                     showToast(msg)
                     return@setNegativeButton
                 }
                 dialog.cancel()
-                ClipManager.setTextToClip("${device.address}-${sp.getString(device.address, "")}")
-                showToast("复制成功")
+//                ClipManager.setTextToClip("${device.address}-${sp.getString(device.address, "")}")
+//                showToast("复制成功")
             }
             .create()
         dialog.show()
@@ -264,48 +291,86 @@ class DeviceListActivity : AppCompatActivity() {
 class DeviceListAdapter(
     private val context: Context,
     private val list: ArrayList<ScanResult>,
-    private val itemClick: (device: BluetoothDevice, password: String, isInit: Boolean) -> Unit,
+    private val openDoor: (mac: String, aesKey: String?) -> Unit,
+    private val modify: (mac: String, aesKey: String?) -> Unit,
     private val initClick: (device: BluetoothDevice) -> Unit
-) : RecyclerView.Adapter<DeviceListViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeviceListViewHolder {
-        return DeviceListViewHolder(LayoutInflater.from(context).inflate(R.layout.item_device, null))
+    private val TYPE_UNINITIAL = 0
+    private val TYPE_INITIAL = 1
+
+    override fun getItemViewType(position: Int): Int {
+        val scanResult = list[position]
+        val hasInit = scanResult.scanRecord!!.bytes[19] and 4.toByte() != 4.toByte()
+        return if (hasInit) TYPE_INITIAL else TYPE_UNINITIAL
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        BleLog.i("itemType: $viewType")
+        return if (viewType == TYPE_UNINITIAL) UninitialViewHolder(
+            LayoutInflater.from(context).inflate(R.layout.item_device_uninitial, null)
+        )
+        else InitialViewHolder(
+            LayoutInflater.from(context).inflate(R.layout.item_device_initial, null)
+        )
     }
 
     override fun getItemCount(): Int {
         return list.size
     }
 
-    override fun onBindViewHolder(holder: DeviceListViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (holder) {
+            is InitialViewHolder -> handleInitDevice(holder, position)
+            is UninitialViewHolder -> handleUninitDevice(holder, position)
+        }
+    }
+
+    private fun handleInitDevice(holder: InitialViewHolder, position: Int) {
         val scanResult = list[position]
         val device = scanResult.device
         val broadcast = scanResult.scanRecord!!.bytes
-        Log.i("DeviceListActivity", "mac: ${device.address}, broadcast: ${DataUtil.bytes2Hex(broadcast)}")
-        val hasInit = (broadcast[19] and 4.toByte()) != 4.toByte()
+        Log.i(
+            "DeviceListActivity",
+            "mac: ${device.address}, broadcast: ${DataUtil.bytes2Hex(broadcast)}"
+        )
         holder.tv_mac.text = device.address
         holder.tv_name.text = device.name
-        if (hasInit) {
-            holder.tv_has_init.text = "已初始化"
-            holder.tv_has_init.background = context.getDrawable(R.drawable.button_initial_bg)
-            holder.tv_has_init.setTextColor(Color.parseColor("#666666"))
+        holder.tv_has_init.text = "已初始化"
+        holder.tv_delete.visibility = View.GONE
+        var aesKey: String?
+        if (CacheManager.containsKey(device.address)) {
+            val json = CacheManager.get(device.address)
+            val bean = JsonUtil.fromJson(json, DeviceBean::class.java)
+            aesKey = bean.aesKey
+            holder.tv_nickname.text = bean.nickname
         } else {
-            if (context is DeviceListActivity) {
-                context.delAes(device.address)
-            }
-            holder.tv_has_init.text = "初始化"
-            holder.tv_has_init.background = context.getDrawable(R.drawable.button_uninitial_bg)
-            holder.tv_has_init.setTextColor(Color.WHITE)
+            aesKey = null
+            holder.tv_nickname.text = "未命名"
         }
-        holder.itemView.setOnClickListener {
-            itemClick.invoke(device, "00000000", hasInit)
+        holder.tv_open_door.setOnClickListener {
+            openDoor.invoke(device.address, aesKey)
         }
+        holder.tv_modify_device_nickname.setOnClickListener {
+            modify.invoke(device.address, aesKey)
+        }
+    }
+
+    private fun handleUninitDevice(holder: UninitialViewHolder, position: Int) {
+        val scanResult = list[position]
+        val device = scanResult.device
+        val broadcast = scanResult.scanRecord!!.bytes
+        BleLog.i(
+            "DeviceListActivity",
+            "mac: ${device.address}, broadcast: ${DataUtil.bytes2Hex(broadcast)}"
+        )
+        holder.tv_mac.text = device.address
+        holder.tv_name.text = device.name
+        CacheManager.remove(device.address)
+        holder.tv_has_init.text = "初始化"
 
         holder.tv_has_init.setOnClickListener {
-            if (hasInit) {
-                itemClick.invoke(device, "00000000", hasInit)
-            } else {
-                initClick.invoke(device)
-            }
+            initClick.invoke(device)
         }
     }
 
@@ -324,8 +389,18 @@ class DeviceListAdapter(
 
 }
 
-class DeviceListViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+class UninitialViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     val tv_mac = itemView.findViewById<TextView>(R.id.tv_device_mac)
     val tv_name = itemView.findViewById<TextView>(R.id.tv_device_name)
     val tv_has_init = itemView.findViewById<TextView>(R.id.tv_has_init)
+}
+
+class InitialViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val tv_mac = itemView.findViewById<TextView>(R.id.tv_device_mac)
+    val tv_name = itemView.findViewById<TextView>(R.id.tv_device_name)
+    val tv_has_init = itemView.findViewById<TextView>(R.id.tv_has_init)
+    val tv_nickname = itemView.findViewById<TextView>(R.id.tv_nickname)
+    val tv_open_door = itemView.findViewById<TextView>(R.id.tv_open_door)
+    val tv_modify_device_nickname = itemView.findViewById<TextView>(R.id.tv_modify_device_nickname)
+    val tv_delete = itemView.findViewById<TextView>(R.id.tv_delete)
 }

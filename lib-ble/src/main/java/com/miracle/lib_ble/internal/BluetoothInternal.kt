@@ -77,6 +77,21 @@ internal class BluetoothInternal {
         }
     }
 
+    private val connectTimer = object : CountDownTimer(10* 1000, 1000) {
+        override fun onTick(millisUntilFinished: Long) {
+            BleLog.i(
+                TAG,
+                "ble connect Timer: $millisUntilFinished"
+            )
+        }
+
+        override fun onFinish() {
+            BleLog.i(TAG, "ble connect Timer: finished")
+            internalRelease()
+            bleCallback?.onConnectTimeout()
+        }
+    }
+
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
@@ -182,6 +197,8 @@ internal class BluetoothInternal {
      */
     private fun connectGatt(device: BluetoothDevice) {
         sleep()
+        connectTimer.cancel()
+        connectTimer.start()
         bleCallback?.onStartConnectGatt(device)
         bluetoothGatt = device.connectGatt(context, false, object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -378,6 +395,7 @@ internal class BluetoothInternal {
      */
     private fun getOpenDoorResponse(data: ByteArray) {
         internalRelease()
+        connectTimer.cancel()
         bleCallback?.onOpenDoorSuccess(data)
     }
 

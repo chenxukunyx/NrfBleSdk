@@ -98,6 +98,10 @@ class ScanResultActivity: AppCompatActivity() {
 
             }
 
+            override fun onConnectTimeout() {
+
+            }
+
         })
 
         BluetoothManager.startScan()
