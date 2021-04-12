@@ -7,6 +7,7 @@ import android.content.Context
 import android.widget.Toast
 import com.miracle.lib_ble.internal.UUIDHelper
 import java.util.*
+import kotlin.experimental.and
 
 /**
  * Created with Android Studio
@@ -90,5 +91,19 @@ object BleUtil {
             ret = ret.replace(":", "")
         }
         return StringBuilder(ret).reverse().toString()
+    }
+
+    fun isDeviceInit(byteArray: ByteArray): Boolean {
+        if (byteArray.isEmpty()) return false
+        for (i in byteArray.indices) {
+            if (byteArray[i] == 0xff.toByte()) {
+                if (i + 9 < byteArray.size - 1) {
+                    val ret = (byteArray[i + 9] and 4.toByte()) != 4.toByte()
+                    return ret
+                }
+                return false
+            }
+        }
+        return false
     }
 }

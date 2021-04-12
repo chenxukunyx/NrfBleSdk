@@ -122,7 +122,14 @@ internal class BluetoothInternal {
             bytes[8] == 0x18.toByte()
         ) {
             //解析mac地址
-            val ret = DataUtil.bytes2Hex(bytes, 23, 6)
+            var macIndex = 0
+            for (i in bytes.indices) {
+                if (bytes[i] == 0xff.toByte()) {
+                    macIndex = i + 13
+                    break
+                }
+            }
+            val ret = DataUtil.bytes2Hex(bytes, macIndex, 6)
             BleLog.i(TAG, "parseDevice---> find a device: ${result.device.name}, mac: $ret")
             return identifier == ret
         }
@@ -178,7 +185,7 @@ internal class BluetoothInternal {
         BleLog.i(TAG, "find a matched device: ${result.device.name}, ${result.device.address}")
         val broadcast = result.scanRecord!!.bytes
         BleLog.i(TAG, "broadcast: ${DataUtil.bytes2Hex(broadcast)}")
-        isDeviceInitial = (broadcast[19] and 4.toByte()) != 4.toByte()
+        isDeviceInitial = BleUtil.isDeviceInit(broadcast)
         if (!isDeviceInitial) {
             BleLog.i(TAG, "device not initial")
             if (!needInitDevice) {
@@ -595,7 +602,7 @@ internal class BluetoothInternal {
         BleLog.i("sendOpenDoorCmd, aesKey: ${DataUtil.bytes2Hex(aesKey!!)}")
         val basicData = Operator.getBasicData(
             GET_OPEN_DOOR_COMMAND,
-            Operator.getOpenDoorData(password, random, 200),
+            Operator.getOpenDoorData(password, random, 450),
             aesKey!!
         )
         val openDoorData = DataUtil.divideByteArray(basicData)

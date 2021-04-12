@@ -23,6 +23,7 @@ import com.github.loadingview.LoadingDialog
 import com.miracle.lib_ble.BluetoothManager
 import com.miracle.lib_ble.callback.BleCallback
 import com.miracle.lib_ble.utils.BleLog
+import com.miracle.lib_ble.utils.BleUtil
 import com.miracle.lib_ble.utils.DataUtil
 import com.tencent.mmkv.MMKV
 import com.yanzhenjie.permission.AndPermission
@@ -310,7 +311,8 @@ class DeviceListAdapter(
 
     override fun getItemViewType(position: Int): Int {
         val scanResult = list[position]
-        val hasInit = scanResult.scanRecord!!.bytes[19] and 4.toByte() != 4.toByte()
+//        val hasInit = scanResult.scanRecord!!.bytes[21] and 4.toByte() != 4.toByte()
+        val hasInit = BleUtil.isDeviceInit(scanResult.scanRecord!!.bytes)
         return if (hasInit) TYPE_INITIAL else TYPE_UNINITIAL
     }
 
